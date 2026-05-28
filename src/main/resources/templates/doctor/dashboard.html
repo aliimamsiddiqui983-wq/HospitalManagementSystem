@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - MediCore HMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="min-h-screen">
+<div class="max-w-[1500px] mx-auto p-4 lg:p-6">
+    <div class="grid lg:grid-cols-[280px_1fr] gap-6">
+        <aside class="glass rounded-[2rem] p-5 h-fit lg:sticky lg:top-6">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600 text-white grid place-items-center">
+                    <i class="fa-solid fa-user-doctor text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-black text-xl">Doctor Portal</h1>
+                    <p class="text-xs text-slate-500">MediCore HMS</p>
+                </div>
+            </div>
+
+            <div class="rounded-3xl bg-slate-900 text-white p-5 mb-6">
+                <div class="h-16 w-16 rounded-2xl bg-white/15 grid place-items-center text-2xl font-black mb-4"
+                     th:text="${#strings.substring(doctor.name,0,1)}">S</div>
+                <p class="text-lg font-black" th:text="'Dr. ' + ${doctor.name}">Dr. Sarah</p>
+                <p class="text-sm text-slate-300 mt-1" th:text="${doctor.email}">sarah@hospital.com</p>
+                <div class="mt-4 rounded-2xl bg-white/10 px-3 py-2 text-xs font-bold">
+                    <i class="fa-solid fa-shield-heart mr-2 text-teal-300"></i> Role: DOCTOR
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="/doctor/dashboard" class="sidebar-link active"><i class="fa-solid fa-calendar-days"></i> Schedule</a>
+                <a href="/appointment/calendar" class="sidebar-link"><i class="fa-solid fa-table-cells-large"></i> Calendar View</a>
+            </nav>
+
+            <form th:action="@{/logout}" method="post" class="mt-8">
+                <button class="btn btn-danger w-full"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+            </form>
+        </aside>
+
+        <main class="space-y-6">
+            <section class="glass rounded-[2rem] p-6 lg:p-8">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                    <div>
+                        <p class="text-sm font-black text-blue-600 tracking-wide">TODAY'S CLINIC</p>
+                        <h2 class="text-3xl lg:text-4xl font-black mt-2">Good day, <span th:text="'Dr. ' + ${doctor.name}">Dr. Sarah</span></h2>
+                        <p class="text-slate-600 mt-2">Review today’s patient flow and manage your weekly schedule.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="todayBtn" class="btn btn-soft"><i class="fa-solid fa-location-crosshairs"></i> Today</button>
+                        <button id="refreshCalendar" class="btn btn-primary"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid md:grid-cols-3 gap-5">
+                <div class="stat-card bg-gradient-to-br from-blue-600 to-indigo-700">
+                    <p class="text-blue-100 text-sm font-bold">Today's appointments</p>
+                    <p class="text-4xl font-black mt-3" th:text="${totalToday}">0</p>
+                </div>
+                <div class="stat-card bg-gradient-to-br from-teal-500 to-emerald-600">
+                    <p class="text-teal-50 text-sm font-bold">Upcoming appointments</p>
+                    <p class="text-4xl font-black mt-3" th:text="${#lists.size(upcoming)}">0</p>
+                </div>
+                <div class="stat-card bg-gradient-to-br from-slate-800 to-slate-950">
+                    <p class="text-slate-200 text-sm font-bold">Session window</p>
+                    <p class="text-2xl font-black mt-3">30 min</p>
+                </div>
+            </section>
+
+            <section class="grid xl:grid-cols-[0.75fr_1.25fr] gap-6">
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h3 class="text-xl font-black">Today's Patients</h3>
+                            <p class="text-sm text-slate-500">Sorted by appointment time</p>
+                        </div>
+                        <span class="status-badge bg-blue-50 text-blue-700" th:text="${totalToday} + ' visits'">0 visits</span>
+                    </div>
+
+                    <div class="space-y-3 max-h-[560px] overflow-auto pr-1">
+                        <div th:if="${#lists.isEmpty(todayAppointments)}" class="rounded-3xl border border-dashed border-slate-300 p-8 text-center">
+                            <i class="fa-regular fa-calendar-check text-4xl text-slate-300"></i>
+                            <p class="font-bold mt-4">No appointments today</p>
+                            <p class="text-sm text-slate-500">Your day is clear for now.</p>
+                        </div>
+
+                        <button type="button" th:each="apt : ${todayAppointments}"
+                                class="appointment-card w-full text-left rounded-3xl border border-slate-200 p-4 hover:border-blue-300 hover:bg-blue-50/60 transition"
+                                th:attr="data-title=${apt.title},data-patient=${apt.patient.name},data-time=${#temporals.format(apt.startTime, 'dd MMM yyyy, hh:mm a')},data-status=${apt.status}">
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 rounded-2xl bg-blue-600 text-white grid place-items-center font-black"
+                                     th:text="${#strings.substring(apt.patient.name,0,1)}">P</div>
+                                <div class="flex-1">
+                                    <p class="font-black" th:text="${apt.patient.name}">Patient Name</p>
+                                    <p class="text-sm text-slate-500" th:text="${#temporals.format(apt.startTime, 'hh:mm a')}">10:30 AM</p>
+                                </div>
+                                <span class="status-badge bg-amber-50 text-amber-700" th:text="${apt.status}">SCHEDULED</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card p-4 lg:p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                        <div>
+                            <h3 class="text-xl font-black">Interactive Schedule</h3>
+                            <p class="text-sm text-slate-500">Click an appointment to see quick details.</p>
+                        </div>
+                        <select id="calendarView" class="input sm:w-52">
+                            <option value="timeGridDay">Day view</option>
+                            <option value="timeGridWeek" selected>Week view</option>
+                            <option value="dayGridMonth">Month view</option>
+                            <option value="listWeek">List view</option>
+                        </select>
+                    </div>
+                    <div id="calendar"></div>
+                </div>
+            </section>
+
+            <section class="card p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    <div>
+                        <h3 class="text-xl font-black">Assigned Appointments</h3>
+                        <p class="text-sm text-slate-500">Every appointment booked with you appears here.</p>
+                    </div>
+                    <span class="status-badge bg-teal-50 text-teal-700" th:text="${#lists.size(doctorAppointments)} + ' total'">0 total</span>
+                </div>
+
+                <div th:if="${#lists.isEmpty(doctorAppointments)}" class="rounded-3xl border border-dashed border-slate-300 p-8 text-center">
+                    <i class="fa-regular fa-calendar text-4xl text-slate-300"></i>
+                    <p class="font-bold mt-4">No patient bookings yet</p>
+                    <p class="text-sm text-slate-500">Appointments booked by patients for this doctor will show up here.</p>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(doctorAppointments)}" class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                        <tr class="text-xs uppercase tracking-wide text-slate-500 border-b">
+                            <th class="py-3 pr-4">Patient</th>
+                            <th class="py-3 pr-4">Date</th>
+                            <th class="py-3 pr-4">Time</th>
+                            <th class="py-3 pr-4">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="apt : ${doctorAppointments}" class="border-b last:border-0 hover:bg-slate-50">
+                            <td class="py-4 pr-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-10 w-10 rounded-2xl bg-blue-600 text-white grid place-items-center font-black"
+                                         th:text="${#strings.substring(apt.patient.name,0,1)}">P</div>
+                                    <div>
+                                        <p class="font-black" th:text="${apt.patient.name}">Patient Name</p>
+                                        <p class="text-xs text-slate-500" th:text="${apt.title}">Checkup</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 pr-4 text-sm font-bold" th:text="${#temporals.format(apt.startTime, 'dd MMM yyyy')}">28 May 2026</td>
+                            <td class="py-4 pr-4 text-sm text-slate-600" th:text="${#temporals.format(apt.startTime, 'hh:mm a')}">10:30 AM</td>
+                            <td class="py-4 pr-4">
+                                <span class="status-badge bg-amber-50 text-amber-700" th:text="${apt.status}">SCHEDULED</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div id="eventModal" class="fixed inset-0 bg-slate-950/50 hidden items-center justify-center p-4 z-50">
+    <div class="card p-6 max-w-md w-full">
+        <div class="flex justify-between items-start gap-4">
+            <div>
+                <p class="text-sm font-black text-blue-600">APPOINTMENT</p>
+                <h3 id="modalTitle" class="text-2xl font-black mt-1">Appointment</h3>
+            </div>
+            <button id="closeModal" class="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="mt-5 space-y-3 text-slate-700">
+            <p><i class="fa-solid fa-user mr-2 text-blue-600"></i><span id="modalPatient">Patient</span></p>
+            <p><i class="fa-solid fa-clock mr-2 text-blue-600"></i><span id="modalTime">Time</span></p>
+            <p><i class="fa-solid fa-circle-check mr-2 text-blue-600"></i><span id="modalStatus">Status</span></p>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('eventModal');
+        const showModal = ({title, patient, time, status}) => {
+            document.getElementById('modalTitle').textContent = title || 'Appointment';
+            document.getElementById('modalPatient').textContent = patient || 'Patient';
+            document.getElementById('modalTime').textContent = time || 'Scheduled time';
+            document.getElementById('modalStatus').textContent = status || 'SCHEDULED';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: window.innerWidth < 768 ? 'listWeek' : 'timeGridWeek',
+            nowIndicator: true,
+            slotMinTime: '07:00:00',
+            slotMaxTime: '20:00:00',
+            allDaySlot: false,
+            expandRows: true,
+            height: 'auto',
+            eventTimeFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short' },
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek'
+            },
+            events: '/appointment/doctor/events',
+            eventDidMount: function(info) {
+                const patient = info.event.extendedProps.patientName || 'Patient';
+                const status = info.event.extendedProps.status || 'SCHEDULED';
+                info.el.title = `${info.event.title}\n${patient}\n${status}`;
+            },
+            eventClick: function(info) {
+                showModal({
+                    title: info.event.title,
+                    patient: info.event.extendedProps.patientName,
+                    time: info.event.start ? info.event.start.toLocaleString() : '',
+                    status: info.event.extendedProps.status
+                });
+            }
+        });
+
+        calendar.render();
+        document.getElementById('calendarView').addEventListener('change', event => calendar.changeView(event.target.value));
+        document.getElementById('todayBtn').addEventListener('click', () => calendar.today());
+        document.getElementById('refreshCalendar').addEventListener('click', () => calendar.refetchEvents());
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.querySelectorAll('.appointment-card').forEach(card => {
+            card.addEventListener('click', () => showModal({
+                title: card.dataset.title,
+                patient: card.dataset.patient,
+                time: card.dataset.time,
+                status: card.dataset.status
+            }));
+        });
+    });
+</script>
+</body>
+</html>

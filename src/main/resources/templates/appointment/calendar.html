@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments - MediCore HMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="min-h-screen">
+<nav class="glass sticky top-0 z-40 mx-4 mt-4 rounded-3xl">
+    <div class="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="h-11 w-11 rounded-2xl bg-indigo-600 text-white grid place-items-center">
+                <i class="fa-solid fa-calendar-days"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black">Appointments</h1>
+                <p class="text-xs text-slate-500" th:text="${userEmail}">user@email.com</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="/appointment/book" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Appointment</a>
+            <a href="/dashboard" class="btn btn-soft"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
+            <form th:action="@{/logout}" method="post">
+                <button class="btn btn-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto p-4 lg:p-8">
+    <section class="card p-4 lg:p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+            <div>
+                <p class="text-sm font-black text-blue-600">LIVE CALENDAR</p>
+                <h2 class="text-3xl font-black">Your appointment schedule</h2>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button class="filter-pill btn btn-soft" data-status="ALL">All</button>
+                <button class="filter-pill btn btn-soft" data-status="SCHEDULED">Scheduled</button>
+                <button class="filter-pill btn btn-soft" data-status="COMPLETED">Completed</button>
+            </div>
+        </div>
+        <div id="calendar"></div>
+    </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let activeStatus = 'ALL';
+        let cachedEvents = [];
+        const colorFor = status => status === 'COMPLETED' ? '#16a34a' : status === 'CANCELLED' ? '#dc2626' : '#2563eb';
+
+        const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+            nowIndicator: true,
+            height: 'auto',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+            events: function (_, successCallback, failureCallback) {
+                fetch('/appointment/events')
+                    .then(res => res.json())
+                    .then(data => {
+                        cachedEvents = data.map(a => ({
+                            id: a.id,
+                            title: a.title,
+                            start: a.start,
+                            end: a.end,
+                            backgroundColor: colorFor(a.status),
+                            borderColor: 'transparent',
+                            extendedProps: { status: a.status, patientName: a.patientName }
+                        }));
+                        successCallback(filterEvents());
+                    })
+                    .catch(failureCallback);
+            },
+            eventDidMount: info => {
+                info.el.title = `${info.event.title}\n${info.event.extendedProps.patientName || ''}\n${info.event.extendedProps.status || 'SCHEDULED'}`;
+            }
+        });
+
+        function filterEvents() {
+            return activeStatus === 'ALL'
+                ? cachedEvents
+                : cachedEvents.filter(event => event.extendedProps.status === activeStatus);
+        }
+
+        calendar.render();
+        document.querySelectorAll('.filter-pill').forEach(button => {
+            button.addEventListener('click', () => {
+                activeStatus = button.dataset.status;
+                calendar.removeAllEvents();
+                calendar.addEventSource(filterEvents());
+            });
+        });
+    });
+</script>
+</body>
+</html>

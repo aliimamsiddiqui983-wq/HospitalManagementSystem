@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - MediCore HMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="min-h-screen">
+<main class="max-w-7xl mx-auto p-4 lg:p-8">
+    <section class="glass rounded-[2rem] p-6 lg:p-8 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div>
+                <a href="/admin/dashboard" class="text-sm font-bold text-blue-600 hover:underline"><i class="fa-solid fa-arrow-left mr-1"></i> Dashboard</a>
+                <h1 class="text-3xl lg:text-4xl font-black mt-2">User Management</h1>
+                <p class="text-slate-600 mt-2">Create accounts, update roles, and keep the care team organized.</p>
+            </div>
+            <a href="/admin/users/new" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Add User</a>
+        </div>
+    </section>
+
+    <div th:if="${msg}" class="mb-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700" th:text="${msg}"></div>
+    <div th:if="${error}" class="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700" th:text="${error}"></div>
+
+    <section class="card p-5 lg:p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+            <div class="relative flex-1 max-w-md">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input id="userSearch" class="input pl-11" placeholder="Search users by name, email, or role">
+            </div>
+            <span class="status-badge bg-blue-50 text-blue-700" th:text="${#lists.size(users)} + ' users'">0 users</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                <tr class="text-xs uppercase text-slate-500 border-b">
+                    <th class="py-3 px-3">User</th>
+                    <th class="py-3 px-3">Email</th>
+                    <th class="py-3 px-3">Role</th>
+                    <th class="py-3 px-3 text-right">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="userTable">
+                <tr th:each="user : ${users}" class="user-row border-b last:border-0 hover:bg-slate-50"
+                    th:attr="data-search=${(user.name + ' ' + user.email + ' ' + user.role).toLowerCase()}">
+                    <td class="py-4 px-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-11 w-11 rounded-2xl bg-slate-900 text-white grid place-items-center font-black"
+                                 th:text="${#strings.substring(user.name,0,1)}">U</div>
+                            <div>
+                                <p class="font-black" th:text="${user.name}">User Name</p>
+                                <p class="text-xs text-slate-500" th:text="${user.role}">ROLE</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-3 text-slate-600" th:text="${user.email}">email</td>
+                    <td class="py-4 px-3">
+                        <form th:action="@{'/admin/users/' + ${user.id} + '/role'}" method="post">
+                            <select name="role" onchange="this.form.submit()" class="input min-w-36">
+                                <option th:selected="${user.role.name() == 'ADMIN'}" value="ADMIN">ADMIN</option>
+                                <option th:selected="${user.role.name() == 'DOCTOR'}" value="DOCTOR">DOCTOR</option>
+                                <option th:selected="${user.role.name() == 'PATIENT'}" value="PATIENT">PATIENT</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td class="py-4 px-3 text-right">
+                        <form th:action="@{'/admin/users/' + ${user.id} + '/delete'}" method="post" class="inline">
+                            <button type="submit" onclick="return confirm('Delete this user?')" class="btn btn-danger">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script>
+    document.getElementById('userSearch').addEventListener('input', function () {
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('.user-row').forEach(row => {
+            row.style.display = row.dataset.search.includes(term) ? '' : 'none';
+        });
+    });
+</script>
+</body>
+</html>

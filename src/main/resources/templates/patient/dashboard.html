@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - MediCore HMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="min-h-screen">
+<nav class="glass sticky top-0 z-40 mx-4 mt-4 rounded-3xl">
+    <div class="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-600 to-teal-500 text-white grid place-items-center">
+                <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black">Patient Portal</h1>
+                <p class="text-sm text-slate-500" th:text="${patient.email}">patient@email.com</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="/appointment/book" class="btn btn-primary"><i class="fa-solid fa-calendar-plus"></i> Book Appointment</a>
+            <form th:action="@{/logout}" method="post">
+                <button class="btn btn-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto p-4 lg:p-8 space-y-6">
+    <section class="glass rounded-[2rem] p-6 lg:p-8">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+                <p class="text-sm font-black text-blue-600">MY HEALTH WORKSPACE</p>
+                <h2 class="text-3xl lg:text-4xl font-black mt-2" th:text="'Welcome, ' + ${patient.name}">Welcome, Patient</h2>
+                <p class="text-slate-600 mt-2">Track appointments and schedule your next hospital visit.</p>
+            </div>
+            <div class="rounded-3xl bg-white/80 border border-white p-5">
+                <p class="text-sm text-slate-500">Patient ID</p>
+                <p class="text-2xl font-black font-mono" th:text="${patient.patientId}">PAT-0001</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid md:grid-cols-3 gap-5">
+        <div class="stat-card bg-gradient-to-br from-blue-600 to-indigo-700">
+            <p class="text-blue-100 text-sm font-bold">Upcoming</p>
+            <p class="text-4xl font-black mt-3" th:text="${upcomingCount}">0</p>
+        </div>
+        <div class="stat-card bg-gradient-to-br from-emerald-500 to-teal-600">
+            <p class="text-emerald-50 text-sm font-bold">Completed</p>
+            <p class="text-4xl font-black mt-3" th:text="${completedCount}">0</p>
+        </div>
+        <div class="stat-card bg-gradient-to-br from-slate-800 to-slate-950">
+            <p class="text-slate-200 text-sm font-bold">Profile</p>
+            <p class="text-lg font-black mt-3" th:text="${patient.phone ?: 'Phone not added'}">Phone</p>
+        </div>
+    </section>
+
+    <section class="card p-4 lg:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <div>
+                <h3 class="text-xl font-black">Appointment Timeline</h3>
+                <p class="text-sm text-slate-500">Your visits are color-coded by status.</p>
+            </div>
+            <a href="/appointment/book" class="btn btn-soft"><i class="fa-solid fa-plus"></i> New Visit</a>
+        </div>
+        <div id="calendar"></div>
+    </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+            height: 'auto',
+            nowIndicator: true,
+            events: '/appointment/events',
+            eventDidMount: info => {
+                info.el.title = `${info.event.title}\nStatus: ${info.event.extendedProps.status || 'SCHEDULED'}`;
+            }
+        }).render();
+    });
+</script>
+</body>
+</html>
